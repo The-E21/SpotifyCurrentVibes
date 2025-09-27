@@ -1,6 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import json
+from datetime import datetime, timezone, timedelta
 
 class backend:
     def __init__(self):
@@ -27,7 +28,7 @@ class backend:
         self.write_data_to_file()
 
     def get_playlist_items(self):
-        return self.sp.playlist_items(self.data["playlist_id"])
+        return self.sp.playlist_items(self.data["playlist_id"])["items"]
     
     def get_recently_listened_to(self):
         rtn = []
@@ -47,7 +48,18 @@ class backend:
         self.sp.playlist_add_items(self.data["playlist_id"], [id])
 
     def refresh(self):
-        pass
+        results = self.get_playlist_items()
+        to_remove = []
+        for item in results:
+            if self.query_remove_item(item):
+                to_remove.append(item["track"]["id"])
+        
+        self.sp.playlist_remove_all_occurrences_of_items(self.data["playlist_id"], to_remove)
+    
+    def query_remove_item(self, item) -> bool:
+        added = datetime.strptime(item["added_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        time_since_added = datetime.now(timezone.utc) - added
+        return time_since_added > timedelta(seconds=self.data["wait_time"])
 
     def set_wait_time(self, time):
         self.data["wait_time"] = time

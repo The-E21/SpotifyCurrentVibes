@@ -1,6 +1,10 @@
-import backend
+from backend import backend
+import json
 
-be = backend.backend()
+be = backend()
+be.refresh()
+
 results = be.get_recently_listened_to()
 for idx, item in enumerate(results):
-    print(idx, item['artists'][0]['name'], " – ", item['name'], "-", item["id"])
+    track = item
+    print(idx, track['id'], " – ", track['name'])
