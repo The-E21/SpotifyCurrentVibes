@@ -33,10 +33,10 @@ class backend:
         user_name = sp_user['uri'].split(":")[2]
         return self.sp.user_playlist_create(user_name,playlist_name, public=False)
 
-    def get_playlist_items(self):
+    def get_playlist_items(self) -> dict:
         return self.sp.playlist_items(self.data["playlist_id"])["items"]
     
-    def get_recently_listened_to(self):
+    def get_recently_listened_to(self) -> dict:
         rtn = []
 
         current = self.sp.current_user_playing_track()
@@ -53,6 +53,12 @@ class backend:
     def add_song(self, id):
         self.check_for_new_month()
         self.sp.playlist_add_items(self.data["playlist_id"], [id])
+
+        month_tracks = self.sp.playlist_items(self.data["month_playlist_id"])["items"]
+        for item in month_tracks:
+            if item["track"]["id"] == id:
+                return
+
         self.sp.playlist_add_items(self.data["month_playlist_id"], [id])
 
     def refresh(self):
