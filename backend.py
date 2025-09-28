@@ -37,11 +37,11 @@ class backend:
     def get_playlist_items(self) -> dict:
         return self.sp.playlist_items(self.data["playlist_id"])["items"]
     
-    def get_recently_listened_to(self) -> dict:
+    def get_recently_listened_to(self, limit = 50) -> dict:
         rtn = []
 
         current = self.sp.current_user_playing_track()
-        recent = self.sp.current_user_recently_played()
+        recent = self.sp.current_user_recently_played(limit=limit)
 
         if current != None and current["item"]["id"] != recent["items"][0]["track"]["id"]:
             rtn.append(current["item"])
