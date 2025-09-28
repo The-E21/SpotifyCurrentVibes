@@ -4,9 +4,10 @@ import json
 from datetime import datetime, timezone, timedelta
 
 class backend:
-    def __init__(self):
+    def __init__(self, client_id, client_secret, redirect_uri):
         scope = ["playlist-modify-private", "user-read-recently-played", "user-read-playback-state"]
-        self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+        auth_manager = SpotifyOAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, scope=scope)
+        self.sp = spotipy.Spotify(auth_manager=auth_manager)
         
         self.DATA_FILE_NAME = "data.json"
         try:
