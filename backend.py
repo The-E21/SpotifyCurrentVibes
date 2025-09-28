@@ -12,6 +12,9 @@ class backend:
         try:
             with open(self.DATA_FILE_NAME, "r") as file:
                 self.data = json.load(file)
+            
+            self.check_for_new_month()
+
         except:
             self.first_time_setup()
         
@@ -20,12 +23,15 @@ class backend:
         DEFAULT_PLAYLIST_NAME = "Current Vibes"
         DEFAULT_WAIT_TIME = 1209600
 
-        sp_user = self.sp.current_user()
-        user_name = sp_user['uri'].split(":")[2]
-        playlist = self.sp.user_playlist_create(user_name,DEFAULT_PLAYLIST_NAME, public=False)
+        playlist = self.create_playlist(DEFAULT_PLAYLIST_NAME)
 
         self.data = {"playlist_id" : playlist["id"], "wait_time" : DEFAULT_WAIT_TIME}
-        self.write_data_to_file()
+        self.start_new_month(datetime.now())
+
+    def create_playlist(self, playlist_name) -> dict:
+        sp_user = self.sp.current_user()
+        user_name = sp_user['uri'].split(":")[2]
+        return self.sp.user_playlist_create(user_name,playlist_name, public=False)
 
     def get_playlist_items(self):
         return self.sp.playlist_items(self.data["playlist_id"])["items"]
@@ -45,7 +51,9 @@ class backend:
         return rtn
 
     def add_song(self, id):
+        self.check_for_new_month()
         self.sp.playlist_add_items(self.data["playlist_id"], [id])
+        self.sp.playlist_add_items(self.data["month_playlist_id"], [id])
 
     def refresh(self):
         results = self.get_playlist_items()
@@ -54,7 +62,8 @@ class backend:
             if self.query_remove_item(item):
                 to_remove.append(item["track"]["id"])
         
-        self.sp.playlist_remove_all_occurrences_of_items(self.data["playlist_id"], to_remove)
+        if len(to_remove) > 0:
+            self.sp.playlist_remove_all_occurrences_of_items(self.data["playlist_id"], to_remove)
     
     def query_remove_item(self, item) -> bool:
         added = datetime.strptime(item["added_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
@@ -69,3 +78,14 @@ class backend:
         json_str = json.dumps(self.data, indent=4)
         with open(self.DATA_FILE_NAME, "w") as file:
             file.write(json_str)
+    
+    def check_for_new_month(self):
+        current_date = datetime.now()
+        if self.data["current_month"] != current_date.month:
+            self.start_new_month(current_date)
+
+    def start_new_month(self, current_date):
+        self.data["current_month"] = current_date.month
+        month_playlist = self.create_playlist(current_date.strftime("%B %y"))
+        self.data["month_playlist_id"] = month_playlist["id"]
+        self.write_data_to_file()
